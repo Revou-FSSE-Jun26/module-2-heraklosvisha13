@@ -1,0 +1,14 @@
+# Sistem
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Log & cache
+*.log
+*.tmp
+
+# SQL backup sementara
+*.sql~
