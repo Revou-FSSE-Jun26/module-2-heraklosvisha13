@@ -9,12 +9,11 @@ INSERT INTO categories (category_name) VALUES
 ('Books'),
 ('Clothing');
 
--- 2. Insert sample data into users
-INSERT INTO users (name, email) VALUES
-('Budi Santoso', 'budi@example.com'),
-('Siti Aminah', 'siti@example.com'),
-('Andi Wijaya', 'andi@example.com'),
-('Dewi Lestari', 'dewi@example.com');
+-- 2. Insert sample data into users --> #Change seeding data to match the new schema with username and password_hash columns
+INSERT INTO users (username,password_hash, email) VALUES
+('budi', 'hashed_password_1', 'budi@example.com'),
+('siti', 'hashed_password_2', 'siti@example.com'),
+('andi', 'hashed_password_3', 'andi@example.com');
 
 -- 3. Insert sample data into products
 INSERT INTO products (name, price, stock, category_id) VALUES

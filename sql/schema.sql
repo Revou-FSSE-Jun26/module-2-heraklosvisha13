@@ -14,8 +14,9 @@ CREATE TABLE categories (
 
 -- 2. Create table users [Independent entity]
 CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    id SERIAL PRIMARY KEY,     
+    username VARCHAR(255) NOT NULL,         -- Change to username following with Checkpoint 2 requirements, before in Checkpoint 1 was name.
+    password_hash VARCHAR(255) NOT NULL,    -- Add new column password_hash following with Checkpoint 2 requirements, before in Checkpoint 1 was null. 
     email VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT now()
 );
