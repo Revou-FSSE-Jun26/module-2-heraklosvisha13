@@ -1,359 +1,211 @@
-# 🛒 RevoShop — Database E-Commerce
+# RevoShop — E-Commerce REST API
 
-## 📌 Deskripsi
+## Deskripsi
 
-Proyek ini adalah database sederhana untuk sistem e-commerce **RevoShop** menggunakan PostgreSQL.
-
-Tabel utama yang digunakan:
-
-* `users`
-* `orders`
-* `order_items`
-* `products`
-* `categories`
+Proyek ini adalah REST API sederhana untuk sistem e-commerce **RevoShop**, dibangun menggunakan **Flask**, **SQLAlchemy**, dan **PostgreSQL**. Dilengkapi dengan database migration menggunakan **Flask-Migrate (Alembic)**.
 
 ---
 
-## 📂 Struktur File
+## Tech Stack
+
+| Teknologi        | Keterangan                          |
+| ---------------- | ----------------------------------- |
+| Python 3         | Bahasa pemrograman                  |
+| Flask            | Web framework                       |
+| Flask-SQLAlchemy | ORM untuk database                  |
+| Flask-Migrate    | Database migration (Alembic)        |
+| PostgreSQL       | Database relasional                 |
+| Werkzeug         | Password hashing                    |
+
+---
+
+## Struktur File
 
 ```text
 .
-├── schema.sql
-├── seed.sql
-├── queries.sql
-├── ERD_revoshop.png
-├── README.md
-└── .gitignore
-```
-
-Keterangan:
-
-| File               | Deskripsi                                       |
-| ------------------ | ----------------------------------------------- |
-| `schema.sql`       | Definisi struktur dan tabel database            |
-| `seed.sql`         | Data awal/sample data                           |
-| `queries.sql`      | Contoh query untuk mengambil dan memfilter data |
-| `ERD_revoshop.png` | Diagram relasi antar tabel                      |
-| `README.md`        | Dokumentasi project                             |
-| `.gitignore`       | File dan folder yang diabaikan oleh Git         |
-
----
-
-# 🛠️ Persiapan & Setup
-
-## 1. Install PostgreSQL di macOS via Homebrew
-
-### Cek instalasi Homebrew
-
-Buka Terminal dan jalankan:
-
-```bash
-brew --version
-```
-
-Jika Homebrew belum terinstall, install terlebih dahulu melalui website resmi Homebrew.
-
-### Install PostgreSQL
-
-Jalankan:
-
-```bash
-brew install postgresql
-```
-
-### Aktifkan layanan PostgreSQL
-
-Setelah instalasi selesai, jalankan:
-
-```bash
-brew services start postgresql
+├── app.py                  # Entry point Flask app
+├── models.py               # SQLAlchemy models (User, Category, Product, Order)
+├── routes.py               # API route handlers (Blueprint)
+├── utils.py                # Shared utilities (db instance)
+├── requirements.txt        # Python dependencies
+├── migrations/             # Flask-Migrate / Alembic migration files
+│   ├── versions/           # Migration scripts
+│   ├── env.py
+│   └── alembic.ini
+├── sql/                    # Raw SQL files (referensi awal)
+│   ├── schema.sql
+│   ├── seed.sql
+│   └── queries.sql
+├── docs/                   # Screenshot & ERD
+│   └── ERD_revoshop.png
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## 2. Verifikasi Instalasi PostgreSQL
+## Database Models
 
-### Cek versi PostgreSQL
+Database `revoshop_db` terdiri dari 5 tabel:
 
-Jalankan:
+| Tabel         | Deskripsi                                        |
+| ------------- | ------------------------------------------------ |
+| `users`       | Data pengguna (username, email, password, role)  |
+| `categories`  | Kategori produk                                  |
+| `products`    | Data produk (nama, harga, stok, kategori)        |
+| `orders`      | Data pesanan pengguna                            |
+| `order_items` | Association table antara orders dan products     |
+
+Relasi:
+
+- Satu `category` memiliki banyak `products`
+- Satu `user` memiliki banyak `orders`
+- `orders` dan `products` terhubung many-to-many melalui `order_items`
+
+ERD tersedia di `docs/ERD_revoshop.png`.
+
+---
+
+## Setup & Instalasi
+
+### 1. Clone Repository
 
 ```bash
-psql --version
+git clone <repository-url>
+cd module-2-heraklosvisha13
 ```
 
-Contoh output:
-
-```text
-psql (PostgreSQL 17.x)
-```
-
-### Masuk ke PostgreSQL
-
-Jalankan:
+### 2. Buat Virtual Environment
 
 ```bash
-psql
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-Jika berhasil, prompt PostgreSQL akan terlihat seperti:
+### 3. Install Dependencies
 
-```text
-username=#
+```bash
+pip install -r requirements.txt
 ```
 
-Contoh:
+### 4. Setup PostgreSQL
 
-```text
-heraklosadiafora=#
-```
-
-> **Note:** Nama `username` bergantung pada konfigurasi PostgreSQL dan username macOS. Bisa berupa `postgres` atau username macOS yang digunakan saat instalasi.
-
-### Verifikasi user yang sedang digunakan
-
-Di dalam PostgreSQL, jalankan:
+Pastikan PostgreSQL sudah berjalan, lalu buat database:
 
 ```sql
-SELECT current_user;
+CREATE DATABASE revoshop_db;
 ```
 
-### Cek roles PostgreSQL
+### 5. Konfigurasi Database
 
-Jalankan:
+Sesuaikan connection string di `app.py`:
 
-```sql
-\du
+```python
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://username:password@localhost:5432/revoshop_db'
 ```
 
-Perintah ini akan menampilkan daftar role/user yang tersedia di PostgreSQL.
+### 6. Jalankan Migration
+
+```bash
+flask db upgrade
+```
+
+Perintah ini akan membuat semua tabel berdasarkan migration scripts yang ada.
 
 ---
 
-# 🐬 3. Install DBeaver
+## Menjalankan Aplikasi
 
-DBeaver digunakan sebagai GUI untuk mengelola database PostgreSQL.
+```bash
+flask run
+```
 
-### Membuat koneksi PostgreSQL
-
-Setelah DBeaver terinstall:
-
-1. Buka **DBeaver**.
-2. Pilih **New Database Connection**.
-3. Pilih **PostgreSQL**.
-4. Isi konfigurasi koneksi:
-
-| Parameter | Value                                    |
-| --------- | ---------------------------------------- |
-| Host      | `localhost`                              |
-| Port      | `5432`                                   |
-| Database  | `postgres`                               |
-| Username  | Sesuai role PostgreSQL                   |
-| Password  | Isi jika PostgreSQL menggunakan password |
-
-5. Klik **Test Connection**.
-6. Jika koneksi berhasil, klik **Finish**.
-
-Database PostgreSQL akan muncul di **Database Navigator**.
+Server akan berjalan di `http://127.0.0.1:5000`.
 
 ---
 
-# 🗄️ 4. Membuat Database `revoshop_db`
+## API Endpoints
 
-Setelah berhasil terhubung ke PostgreSQL:
+### Products
 
-1. Klik kanan pada koneksi PostgreSQL.
-2. Pilih **Create → Database**.
-3. Masukkan nama database:
+| Method | Endpoint           | Deskripsi                  |
+| ------ | ------------------ | -------------------------- |
+| GET    | `/products`        | Mendapatkan semua produk   |
+| GET    | `/products/<id>`   | Mendapatkan produk by ID   |
 
-```text
-revoshop_db
+### Users
+
+| Method | Endpoint          | Deskripsi                   |
+| ------ | ----------------- | --------------------------- |
+| POST   | `/register`       | Registrasi user baru        |
+| GET    | `/users/<id>`     | Mendapatkan user by ID      |
+
+### Contoh Request — Register User
+
+```bash
+curl -X POST http://127.0.0.1:5000/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "john", "email": "john@example.com", "password": "secret123"}'
 ```
 
-4. Klik **Create**.
-5. Refresh koneksi PostgreSQL.
+Response:
 
-Struktur database akan terlihat seperti:
-
-```text
-PostgreSQL
-└── localhost
-    ├── postgres
-    └── revoshop_db
-```
-
----
-
-# ▶️ Menjalankan File SQL di DBeaver
-
-Setelah database `revoshop_db` berhasil dibuat, jalankan file SQL secara berurutan:
-
-```text
-schema.sql
-    ↓
-seed.sql
-    ↓
-queries.sql
+```json
+{
+  "message": "User registered successfully",
+  "user": {
+    "id": 1,
+    "username": "john",
+    "email": "john@example.com",
+    "created_at": "2026-08-18T10:00:00"
+  }
+}
 ```
 
 ---
 
-## A. Menjalankan `schema.sql`
+## Database Migration
 
-File `schema.sql` digunakan untuk membuat struktur database dan tabel.
+Proyek ini menggunakan Flask-Migrate untuk mengelola perubahan schema database.
 
-Langkah-langkah:
+```bash
+# Buat migration baru setelah mengubah models.py
+flask db migrate -m "deskripsi perubahan"
 
-1. Buka database `revoshop_db`.
-2. Klik kanan database → **SQL Editor → New SQL Script**.
-3. Copy isi file `schema.sql`.
-4. Paste ke SQL Editor.
-5. Jalankan script.
-6. Refresh database.
+# Terapkan migration ke database
+flask db upgrade
 
-Pastikan tabel berikut sudah muncul:
-
-```text
-categories
-users
-products
-orders
-order_items
+# Rollback migration terakhir
+flask db downgrade
 ```
 
----
+Migration yang sudah ada:
 
-## B. Menjalankan `seed.sql`
-
-File `seed.sql` digunakan untuk memasukkan sample data ke dalam database.
-
-Langkah-langkah:
-
-1. Buka SQL Editor pada database `revoshop_db`.
-2. Copy isi file `seed.sql`.
-3. Paste ke SQL Editor.
-4. Jalankan script.
-5. Pastikan tidak ada error.
-6. Refresh bagian **Tables**.
-
-Setelah itu, buka masing-masing tabel untuk memastikan sample data sudah masuk.
+1. `6fcb6fd67c68` — Initial tables (tanpa role)
+2. `8f6d2ed54ef2` — Menambahkan kolom `role` ke tabel users
 
 ---
 
-## C. Menjalankan `queries.sql`
+## Screenshot
 
-File `queries.sql` berisi contoh query untuk mengambil, mencari, dan memfilter data dari database.
+Screenshot pengujian API tersedia di folder `docs/`:
 
-Langkah-langkah:
-
-1. Buka SQL Editor pada database `revoshop_db`.
-2. Copy query dari file `queries.sql`.
-3. Paste ke SQL Editor.
-4. Jalankan query.
-5. Periksa hasil query pada tab **Results**.
+- Register user: `Screenshot-post-register-user.png`
+- Get user by ID: `Screenshot-get-user-by-id-foundid.png`
+- Get all products: `Screenshot-get-products-all.png`
+- Get product by ID: `Screenshot-get-products-by-id-found.png`
+- Role column added: `Screenshoot-role-column-added.png`
 
 ---
 
-# 🔄 Alur Project
+## Tujuan Project
 
-```text
-PostgreSQL
-    ↓
-DBeaver
-    ↓
-Create database: revoshop_db
-    ↓
-schema.sql
-    ↓
-Membuat 5 tabel
-    ↓
-seed.sql
-    ↓
-Mengisi sample data
-    ↓
-queries.sql
-    ↓
-Mengambil / memfilter data
-    ↓
-Verifikasi hasil
-```
+Project ini dibuat untuk memahami:
 
----
-
-# 🗂️ Struktur Database
-
-Database `revoshop_db` terdiri dari 5 tabel utama:
-
-```text
-categories
-    │
-    └── products
-            │
-            └── order_items
-                    │
-users ───────── orders
-```
-
-Relasi utama:
-
-* Satu `category` dapat memiliki banyak `products`.
-* Satu `product` dapat muncul di banyak `order_items`.
-* Satu `user` dapat memiliki banyak `orders`.
-* Satu `order` dapat memiliki banyak `order_items`.
-* `order_items` menghubungkan `orders` dengan `products`.
-
-Untuk melihat gambaran relasi database secara visual, gunakan file:
-
-```text
-ERD_revoshop.png
-```
-
----
-
-# ✅ Verifikasi Project
-
-Setelah semua file SQL dijalankan, pastikan:
-
-* [ ] Database `revoshop_db` berhasil dibuat.
-* [ ] PostgreSQL dapat terhubung melalui DBeaver.
-* [ ] Lima tabel berhasil dibuat.
-* [ ] Sample data berhasil dimasukkan.
-* [ ] Query pada `queries.sql` dapat dijalankan tanpa error.
-* [ ] Hasil query muncul pada tab **Results**.
-* [ ] ERD sesuai dengan struktur tabel database.
-
----
-
-# 📌 Urutan Setup Singkat
-
-Jika PostgreSQL dan DBeaver sudah terinstall, urutan pengerjaan project adalah:
-
-```text
-1. Buat database revoshop_db
-        ↓
-2. Jalankan schema.sql
-        ↓
-3. Jalankan seed.sql
-        ↓
-4. Jalankan queries.sql
-        ↓
-5. Verifikasi tabel dan data
-        ↓
-6. Cocokkan dengan ERD_revoshop.png
-```
-
----
-
-# 🎯 Tujuan Project
-
-Project ini dibuat untuk memahami dasar-dasar:
-
-* Database relational
-* PostgreSQL
-* SQL
-* Primary Key dan Foreign Key
-* Relasi antar tabel
-* `INSERT`, `SELECT`, `UPDATE`, dan `DELETE`
-* Filtering dan pencarian data
-* `JOIN`
-* Pengelolaan database menggunakan DBeaver
-* Pembuatan dan penggunaan ERD
+- Membangun REST API dengan Flask
+- Object-Relational Mapping (ORM) dengan SQLAlchemy
+- Database migration dengan Flask-Migrate / Alembic
+- Password hashing dengan Werkzeug
+- Relasi antar tabel (One-to-Many, Many-to-Many)
+- Blueprint pattern untuk modularisasi routes
+- PostgreSQL sebagai production database

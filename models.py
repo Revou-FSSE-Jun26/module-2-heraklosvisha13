@@ -4,12 +4,11 @@ from utils import db
 
 # Association Table
 order_items = db.Table('order_items',
-    db.Column('order_id', db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), primary_key=True),
-    db.Column('product_id', db.Integer, db.ForeignKey('products.id', ondelete='RESTRICT'), primary_key=True),
+    db.Column('order_id', db.Integer, db.ForeignKey('orders.id'), primary_key=True),
+    db.Column('product_id', db.Integer, db.ForeignKey('products.id'), primary_key=True),
     db.Column('quantity', db.Integer, nullable=False),
     db.Column('unit_price', db.Numeric(10, 2), nullable=False)
 )
-
 
 class User(db.Model):
     __tablename__   = 'users'
@@ -18,7 +17,7 @@ class User(db.Model):
     username        = db.Column(db.String(255), nullable=False, unique=True)
     password_hash   = db.Column(db.String(255), nullable=False)
     email           = db.Column(db.String(255), nullable=False, unique=True)
-    role            = db.Column(db.String(20), server_default='user')  # Added role field with default value
+    role            = db.Column(db.String(20), server_default='customer')  # Added role field with default value
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
     orders          = db.relationship('Order', backref='user', lazy=True)
@@ -40,7 +39,7 @@ class Product(db.Model):
     name            = db.Column(db.String(255), nullable=False)
     price           = db.Column(db.Numeric(10, 2), nullable=False)
     stock           = db.Column(db.Integer, nullable=False, default=0)
-    category_id     = db.Column(db.Integer, db.ForeignKey('categories.id', ondelete='SET NULL'))
+    category_id     = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
 
     def show_list(self):
         return {
@@ -56,7 +55,7 @@ class Order(db.Model):
     __tablename__   = 'orders'
 
     id              = db.Column(db.Integer, primary_key=True)
-    user_id         = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='RESTRICT'), nullable=False)
+    user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     total_price     = db.Column(db.Numeric(10, 2), nullable=False)
     status          = db.Column(db.String(50), nullable=False, default='pending')
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)

@@ -6,9 +6,41 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Environment Variables
+.env
+.env.*
+
 # Log & cache
 *.log
 *.tmp
 
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Flask / instance
+instance/
+
+# Database files
+*.db
+*.sqlite3
+
 # SQL backup sementara
 *.sql~
+
+# Migrations pycache (keep migration scripts)
+migrations/__pycache__/
+migrations/versions/__pycache__/

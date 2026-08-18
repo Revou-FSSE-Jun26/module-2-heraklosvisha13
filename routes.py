@@ -1,24 +1,31 @@
 from flask import Blueprint, jsonify, request
-from models import User, Product
+from models import User, Category, Product, Order
 from utils import db
 from werkzeug.security import generate_password_hash
 
 users_bp        = Blueprint('users', __name__, url_prefix='')
 products_bp     = Blueprint('products', __name__, url_prefix='/products')
 
+# Hardcoded product data
+hardcoded_products = [
+    {"id": 1, "name": "Laptop Gaming", "Price": 15000000},
+    {"id": 2, "name": "Mouse Wireless", "Price": 250000},
+    {"id": 3, "name": "Keyboard Mechanical", "Price": 850000},
+    ]
 
-@products_bp.route('/products', methods=['GET'])
+
+@products_bp.route('', methods=['GET'])
 def get_products():
-    products = Product.query.all()
-    return jsonify([product.show_list() for product in products]), 200
+    # products = Product.query.all()
+    return jsonify(hardcoded_products), 200
 
-@products_bp.route('/products/<int:product_id>', methods=['GET'])
+@products_bp.route('/<int:product_id>', methods=['GET'])
 def get_product(product_id):
-    product = Product.query.get(product_id)
+    # product = Product.query.get(product_id)
+    product = next((p for p in hardcoded_products if p['id'] == product_id), None)
     if product is None:
         return jsonify({"message": "Product not found", "status": "error"}), 404
-    return jsonify(product.show_list()), 200
-
+    return jsonify(product), 200
 
 
 @users_bp.route('/register', methods=['POST'])

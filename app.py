@@ -1,8 +1,9 @@
 from flask import Flask
+from flask_migrate import Migrate
+from models import User, Category, Product, Order
 from routes import users_bp, products_bp
 from utils import db
-from models import User, Category, Product, Order
-from flask_migrate import Migrate
+
 
 def init_app():
     print("initializing Flask App...")
@@ -17,10 +18,7 @@ def init_app():
 
     print("Registering blueprints...")
     app.register_blueprint(users_bp)
-    # app.register_blueprint(categories_bp)
     app.register_blueprint(products_bp)
-    # app.register_blueprint(orders_bp)
-
 
     print("Flask app initialized successfully.")
     return app
