@@ -8,9 +8,9 @@ products_bp     = Blueprint('products', __name__, url_prefix='/products')
 
 # Hardcoded product data
 hardcoded_products = [
-    {"id": 1, "name": "Laptop Gaming", "Price": 15000000},
-    {"id": 2, "name": "Mouse Wireless", "Price": 250000},
-    {"id": 3, "name": "Keyboard Mechanical", "Price": 850000},
+    {"id": 1, "name": "Laptop Gaming", "price": 15000000},
+    {"id": 2, "name": "Mouse Wireless", "price": 250000},
+    {"id": 3, "name": "Keyboard Mechanical", "price": 850000},
     ]
 
 
