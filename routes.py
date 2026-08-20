@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from models import User, Category, Product, Order
-from utils import db
+from models import db
 from werkzeug.security import generate_password_hash
 
 users_bp        = Blueprint('users', __name__, url_prefix='')
