@@ -19,7 +19,7 @@ ENV/
 
 # Environment Variables
 .env
-.env.*
+#.env.*
 
 # Log & cache
 *.log
