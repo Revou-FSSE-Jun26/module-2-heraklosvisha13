@@ -3,7 +3,7 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from config import Config
 from models import db
-from routes import users_bp, products_bp
+from routes import auth_bp, users_bp, products_bp, categories_bp, orders_bp
 
 
 def init_app():
