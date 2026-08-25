@@ -10,7 +10,7 @@ class Product(db.Model):
     stock           = db.Column(db.Integer, nullable=False, default=0)
     category_id     = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
 
-    def show_list(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
