@@ -19,7 +19,8 @@ ENV/
 
 # Environment Variables
 .env
-#.env.*
+.env.*
+!.env.example
 
 # Log & cache
 *.log
@@ -44,3 +45,13 @@ instance/
 # Migrations pycache (keep migration scripts)
 migrations/__pycache__/
 migrations/versions/__pycache__/
+
+# Pytest
+.pytest_cache/
+
+# Locust load-test reports
+locust_*.csv
+*_stats.csv
+*_stats_history.csv
+*_failures.csv
+report.html

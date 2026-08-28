@@ -23,6 +23,8 @@ Jinja2==3.1.6
 locust==2.46.4
 Mako==1.4.1
 MarkupSafe==3.0.3
+marshmallow==4.3.1
+marshmallow-sqlalchemy==1.5.0
 msgpack==1.2.1
 packaging==26.3
 pluggy==1.6.0
