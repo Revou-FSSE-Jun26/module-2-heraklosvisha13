@@ -4,6 +4,8 @@ from marshmallow import ValidationError
 from app.services.order_service import OrderService
 from app.schemas.order_schema import OrderCreateSchema
 from app.utils.response_builder import success_response, error_response
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from app.models import db 
 
 orders_bp = Blueprint('orders', __name__, url_prefix='/orders')
 
@@ -23,7 +25,14 @@ def create_order():
         return error_response(e.messages, 400)
     except ValueError as e:
         return error_response(str(e), 404)
-    except Exception:
+    except IntegrityError as e:
+        db.session.rollback()  
+        return error_response("Data conflict (duplicate entry or invalid reference)", 409)
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return error_response("Database system error", 500)
+    except Exception as e:
+        db.session.rollback()
         return error_response("Internal server error", 500)
 
 
@@ -73,5 +82,12 @@ def delete_order(order_id):
         return error_response(str(e), 404)
     except PermissionError as e:
         return error_response(str(e), 403)
-    except Exception:
+    except IntegrityError as e:
+        db.session.rollback()  
+        return error_response("Data conflict (duplicate entry or invalid reference)", 409)
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return error_response("Database system error", 500)
+    except Exception as e:
+        db.session.rollback()
         return error_response("Internal server error", 500)
