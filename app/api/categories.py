@@ -4,6 +4,8 @@ from marshmallow import ValidationError
 from app.services.category_service import CategoryService
 from app.schemas.category_schema import CategoryCreateSchema, CategoryUpdateSchema
 from app.utils.response_builder import success_response, error_response
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from app.models import db 
 
 categories_bp = Blueprint('categories', __name__, url_prefix='/categories')
 
@@ -22,7 +24,14 @@ def create_category():
         return error_response(e.messages, 400)
     except ValueError as e:
         return error_response(str(e), 409)
-    except Exception:
+    except IntegrityError as e:
+        db.session.rollback()  
+        return error_response("Data conflict (duplicate entry or invalid reference)", 409)
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return error_response("Database system error", 500)
+    except Exception as e:
+        db.session.rollback()
         return error_response("Internal server error", 500)
 
 
@@ -66,7 +75,14 @@ def update_category(category_id):
         return error_response(e.messages, 400)
     except ValueError as e:
         return error_response(str(e), 409)
-    except Exception:
+    except IntegrityError as e:
+        db.session.rollback()  
+        return error_response("Data conflict (duplicate entry or invalid reference)", 409)
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return error_response("Database system error", 500)
+    except Exception as e:
+        db.session.rollback()
         return error_response("Internal server error", 500)
 
 
@@ -83,5 +99,12 @@ def delete_category(category_id):
         return error_response(str(e), 404)
     except PermissionError as e:
         return error_response(str(e), 409)  # 409 Conflict!
-    except Exception:
+    except IntegrityError as e:
+        db.session.rollback()  
+        return error_response("Data conflict (duplicate entry or invalid reference)", 409)
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return error_response("Database system error", 500)
+    except Exception as e:
+        db.session.rollback()
         return error_response("Internal server error", 500)
