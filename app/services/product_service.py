@@ -1,5 +1,5 @@
 from sqlalchemy.exc import SQLAlchemyError
-from app.models import db, Product, Category, order_items
+from app.models import db, Product, Category, order_items, Order
 
 class ProductService:
 
@@ -60,8 +60,17 @@ class ProductService:
         if not product:
             raise ValueError("Product not found")
 
-        # Deletion Guard: Cek apakah produk ada di order_items
-        exists = db.session.query(order_items).filter(order_items.c.product_id == product_id).first()
+        # exists = db.session.query(order_items).filter(order_items.c.product_id == product_id).first()
+        # baris 66: Hanya check apakah produk ada di order_items atau tidak sehingga jika ada tidak dapat dihapus
+        
+        active = ("pending", "processing", "shipped")
+
+        exists = (db.session.query(order_items) #ambil data dari table order_items
+                .join(Order, Order.id == order_items.c.order_id) #gabung data order_items dan order dengan syarat order.id == order_items.order_id
+                .filter(order_items.c.product_id == product_id, Order.status.in_(active)) #lakukan filtering untuk mengambil 2 kondisi AND
+                .first())
+        # baris 69: Check apakah produk
+
         if exists:
             raise PermissionError("Cannot delete product: active orders exist")
 
