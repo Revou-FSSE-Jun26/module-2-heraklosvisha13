@@ -2,7 +2,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 from app.services.order_service import OrderService
-from app.schemas.order_schema import OrderCreateSchema
+from app.schemas.order_schema import OrderCreateSchema, OrderUpdateSchema
 from app.utils.response_builder import success_response, error_response
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.models import db 
@@ -82,6 +82,31 @@ def delete_order(order_id):
         return error_response(str(e), 404)
     except PermissionError as e:
         return error_response(str(e), 403)
+    except IntegrityError as e:
+        db.session.rollback()  
+        return error_response("Data conflict (duplicate entry or invalid reference)", 409)
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return error_response("Database system error", 500)
+    except Exception as e:
+        db.session.rollback()
+        return error_response("Internal server error", 500)
+
+# ================================================================
+# PUT /orders/<id> - Update status order (JWT Required + Authorization check)
+# ================================================================
+@orders_bp.route('/<int:order_id>', methods=['PUT'])
+@jwt_required()
+def update_order(order_id):
+    try:
+        user_id = int(get_jwt_identity()) # Ambil user_id dari token JWT
+        data = OrderUpdateSchema().load(request.get_json()) # Validasi input menggunakan Schema yang baru kita buat
+        order = OrderService.update_order(order_id, user_id, data) # Panggil Service untuk mengupdate
+        return success_response({"message": "Order status updated successfully", "order": order.to_dict()}, 200)
+    except ValidationError as e:
+        return error_response(e.messages, 400)
+    except ValueError as e:
+        return error_response(str(e), 404)
     except IntegrityError as e:
         db.session.rollback()  
         return error_response("Data conflict (duplicate entry or invalid reference)", 409)
