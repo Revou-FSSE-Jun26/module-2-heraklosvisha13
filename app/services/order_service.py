@@ -23,7 +23,7 @@ class OrderService:
                 "unit_price": float(product.price)
             })
 
-        order = Order(user_id=user_id, total_price=total_price, status='completed')
+        order = Order(user_id=user_id, total_price=total_price, status='pending')
         db.session.add(order)
         db.session.flush()
 
@@ -91,3 +91,31 @@ class OrderService:
             "created_at": order.created_at,
             "items": items
         }
+    @staticmethod
+    def update_order(order_id, user_id, data):
+        """
+        Update status order. Hanya pemilik order yang boleh mengupdate.
+        Jika order sudah 'completed', tidak boleh diubah lagi.
+        """
+        # Cari order
+        order = Order.query.get(order_id)
+        if not order:
+            raise ValueError("Order not found")
+        
+        # Otorisasi: Cek apakah order ini milik user yang login
+        if order.user_id != user_id:
+            raise PermissionError("Unauthorized to update this order")
+        
+        # Cek apakah order sudah "completed"
+        if order.status == "completed":
+            raise PermissionError("Cannot update order: already completed")
+        # ============================================================
+        
+        # Ambil status baru dan validasi (Marshmallow sudah mengecek, tapi kita cek lagi)
+        new_status = data['status']
+        
+        # Update status
+        order.status = new_status
+        db.session.commit()
+        
+        return order
