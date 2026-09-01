@@ -15,6 +15,7 @@ Flask-SQLAlchemy==3.1.1
 gevent==26.8.0
 geventhttpclient==2.3.9
 greenlet==3.5.5
+gunicorn==26.2.0
 h11==0.16.0
 idna==3.19
 iniconfig==2.3.0
