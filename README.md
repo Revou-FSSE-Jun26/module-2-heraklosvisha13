@@ -1,18 +1,33 @@
 # RevoShop — E-Commerce REST API
 
-## Deskripsi
+REST API untuk sistem e-commerce **RevoShop**, dibangun dengan **Flask**, **SQLAlchemy**, dan **PostgreSQL**. API menyediakan autentikasi berbasis **JWT**, manajemen produk & kategori, serta pemesanan (orders). Skema database dikelola dengan **Flask-Migrate (Alembic)** dan validasi input memakai **Marshmallow**.
 
-Proyek ini adalah REST API untuk sistem e-commerce **RevoShop**, dibangun dengan **Flask**, **SQLAlchemy**, dan **PostgreSQL**. API mendukung autentikasi berbasis **JWT**, manajemen produk & kategori, serta pemesanan (orders). Schema database dikelola dengan **Flask-Migrate (Alembic)**.
+Kode disusun berlapis agar mudah dirawat: **API (routes) → Service (business logic) → Model (ORM)**.
 
-Arsitektur disusun secara berlapis (layered): **API (routes) → Service (business logic) → Model (ORM)**, dengan validasi input menggunakan **Marshmallow**.
-
-> 🚀 **Live Deployment:** [https://module-2-heraklosvisha13.onrender.com](https://module-2-heraklosvisha13.onrender.com)
+> 🚀 **Live Demo:** [https://module-2-heraklosvisha13.onrender.com](https://module-2-heraklosvisha13.onrender.com)
 
 ---
 
-## Tech Stack
+## Daftar Isi
 
-| Teknologi          | Keterangan                              |
+1. [Tech Stack](#1-tech-stack)
+2. [Arsitektur & Struktur File](#2-arsitektur--struktur-file)
+3. [Database Models](#3-database-models)
+4. [Menjalankan di Lokal](#4-menjalankan-di-lokal)
+5. [Alur Penggunaan API (Quick Start)](#5-alur-penggunaan-api-quick-start)
+6. [Referensi API Endpoints](#6-referensi-api-endpoints)
+7. [Contoh Request](#7-contoh-request)
+8. [Database Migration](#8-database-migration)
+9. [Deployment (Render + Supabase)](#9-deployment-render--supabase)
+10. [Testing & Load Testing](#10-testing--load-testing)
+11. [Screenshot / Bukti Pengujian](#11-screenshot--bukti-pengujian)
+12. [Tujuan Project](#12-tujuan-project)
+
+---
+
+## 1. Tech Stack
+
+| Teknologi          | Peran                                   |
 | ------------------ | --------------------------------------- |
 | Python 3           | Bahasa pemrograman                      |
 | Flask              | Web framework                           |
@@ -22,104 +37,111 @@ Arsitektur disusun secara berlapis (layered): **API (routes) → Service (busine
 | Marshmallow        | Validasi & serialisasi request/response |
 | PostgreSQL         | Database relasional                     |
 | Werkzeug           | Password hashing                        |
+| Gunicorn           | WSGI server (production)                |
 | pytest             | Automated testing                       |
 | Locust             | Load testing                            |
 
 ---
 
-## Struktur File
+## 2. Arsitektur & Struktur File
+
+Setiap request mengalir melalui tiga lapisan yang tanggung jawabnya terpisah:
+
+```text
+Request ──► API (routes)  ──► Service (business logic) ──► Model (ORM) ──► PostgreSQL
+             validasi           aturan bisnis,              query &
+             input (schema)     otorisasi                   relasi tabel
+```
+
+Struktur folder:
 
 ```text
 .
 ├── run.py                      # Entry point (create_app + app.run)
 ├── config.py                   # Config & TestingConfig (baca dari .env)
 ├── requirements.txt            # Python dependencies
+├── Procfile                    # Perintah start untuk Render (Gunicorn)
 ├── locustfile.py               # Skenario load testing
 ├── app/
 │   ├── __init__.py             # Application factory: create_app()
-│   ├── api/                    # Route handlers (Blueprint)
-│   │   ├── auth.py             # /auth/login, /users (register)
-│   │   ├── products.py         # /products
-│   │   ├── categories.py       # /categories
-│   │   └── orders.py           # /orders
-│   ├── models/                 # SQLAlchemy models
+│   ├── api/                    # Lapisan 1 — Route handlers (Blueprint)
+│   │   ├── auth.py             #   /auth/login, /users (register)
+│   │   ├── products.py         #   /products
+│   │   ├── categories.py       #   /categories
+│   │   └── orders.py           #   /orders
+│   ├── schemas/                # Validasi input (Marshmallow)
+│   ├── services/               # Lapisan 2 — Business logic
+│   ├── models/                 # Lapisan 3 — SQLAlchemy models
 │   │   ├── user.py
 │   │   ├── category.py
 │   │   ├── product.py
-│   │   └── order.py            # Order + order_items (association table)
-│   ├── schemas/                # Marshmallow schemas (validasi)
-│   ├── services/               # Business logic
+│   │   └── order.py            #   Order + order_items (association table)
 │   └── utils/
 │       └── response_builder.py # Format response & error handler
-├── migrations/                 # Flask-Migrate / Alembic
-│   └── versions/
+├── migrations/versions/        # Flask-Migrate / Alembic
 ├── tests/                      # pytest (auth, products, categories)
 │   └── conftest.py
 ├── docs/                       # Screenshot & ERD
 │   └── ERD_revoshop.png
 ├── .env.example
-├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Database Models
+## 3. Database Models
 
 Database terdiri dari 5 tabel:
 
-| Tabel         | Deskripsi                                       |
-| ------------- | ----------------------------------------------- |
-| `users`       | Data pengguna (username, email, password, role) |
-| `categories`  | Kategori produk                                 |
-| `products`    | Data produk (nama, harga, stok, kategori)       |
-| `orders`      | Data pesanan pengguna                           |
-| `order_items` | Association table antara orders dan products    |
+| Tabel         | Deskripsi                                        |
+| ------------- | ------------------------------------------------ |
+| `users`       | Data pengguna (username, email, password, role)  |
+| `categories`  | Kategori produk                                  |
+| `products`    | Data produk (nama, harga, stok, kategori)        |
+| `orders`      | Data pesanan pengguna                            |
+| `order_items` | Association table antara `orders` dan `products` |
 
-Relasi:
+**Relasi antar tabel:**
 
-- Satu `category` memiliki banyak `products`
-- Satu `user` memiliki banyak `orders`
-- `orders` dan `products` terhubung many-to-many melalui `order_items`
+- Satu `category` memiliki banyak `products` (one-to-many)
+- Satu `user` memiliki banyak `orders` (one-to-many)
+- `orders` ↔ `products` many-to-many melalui `order_items`
 
-ERD tersedia di `docs/ERD_revoshop.png`.
+ERD lengkap: [`docs/ERD_revoshop.png`](docs/ERD_revoshop.png).
 
 ---
 
-## Setup & Instalasi
+## 4. Menjalankan di Lokal
 
-### 1. Clone Repository
+Ikuti langkah berikut secara berurutan.
+
+### Langkah 1 — Clone & masuk ke folder
 
 ```bash
 git clone <repository-url>
 cd module-2-heraklosvisha13
 ```
 
-### 2. Buat Virtual Environment
+### Langkah 2 — Virtual environment & dependencies
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 4. Setup PostgreSQL
+### Langkah 3 — Siapkan database PostgreSQL
 
-Pastikan PostgreSQL berjalan, lalu buat dua database — satu untuk aplikasi dan satu untuk testing:
+Buat dua database terpisah — satu untuk aplikasi, satu khusus testing:
 
 ```sql
 CREATE DATABASE revoshop_db;
 CREATE DATABASE revoshop_test_db;
 ```
 
-### 5. Konfigurasi Environment
+### Langkah 4 — Konfigurasi `.env`
 
-Salin `.env.example` menjadi `.env`, lalu sesuaikan nilainya:
+Salin template lalu sesuaikan nilainya:
 
 ```bash
 cp .env.example .env
@@ -127,18 +149,18 @@ cp .env.example .env
 
 Variabel yang dibaca aplikasi (lihat `config.py`):
 
-| Variabel               | Keterangan                                              |
-| ---------------------- | ------------------------------------------------------- |
-| `DATABASE_URL`         | Connection string database utama                       |
-| `DATABASE_TESTING_URL` | Connection string database testing (dipakai saat pytest)|
-| `SECRET_KEY`           | Secret key Flask                                        |
-| `JWT_SECRET_KEY`       | Secret key untuk signing JWT                            |
-| `JWT_EXPIRATION`       | Masa berlaku token (detik), default `3600`              |
-| `DEBUG`                | `True` / `False`                                        |
-| `LOAD_TEST_USERNAME`   | Username user untuk load testing (Locust)               |
-| `LOAD_TEST_PASSWORD`   | Password plaintext user tersebut untuk Locust           |
+| Variabel               | Keterangan                                               |
+| ---------------------- | -------------------------------------------------------- |
+| `DATABASE_URL`         | Connection string database utama                        |
+| `DATABASE_TESTING_URL` | Connection string database testing (dipakai saat pytest) |
+| `SECRET_KEY`           | Secret key Flask                                         |
+| `JWT_SECRET_KEY`       | Secret key untuk signing JWT                             |
+| `JWT_EXPIRATION`       | Masa berlaku token dalam detik (default `3600`)          |
+| `DEBUG`                | `True` / `False`                                         |
+| `LOAD_TEST_USERNAME`   | Username user untuk load testing (Locust)                |
+| `LOAD_TEST_PASSWORD`   | Password **plaintext** user tersebut untuk Locust        |
 
-Contoh:
+Contoh isi `.env`:
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/revoshop_db
@@ -151,163 +173,96 @@ LOAD_TEST_USERNAME=andi_cobra
 LOAD_TEST_PASSWORD=password123
 ```
 
-> Catatan: `LOAD_TEST_PASSWORD` harus berupa **password plaintext asli** dari user tersebut, bukan nilai `password_hash` yang tersimpan di database. Login memverifikasi plaintext terhadap hash, jadi mengisi nilai hash akan selalu gagal (401).
+> **Catatan:** `LOAD_TEST_PASSWORD` harus password **plaintext asli**, bukan nilai `password_hash` di database. Login memverifikasi plaintext terhadap hash, jadi mengisi nilai hash akan selalu gagal (`401`).
 
-### 6. Jalankan Migration
+### Langkah 5 — Terapkan skema & jalankan
 
 ```bash
-flask db upgrade
+flask db upgrade        # buat semua tabel dari file migration
+python run.py           # atau: flask run
 ```
+
+Server berjalan di **`http://127.0.0.1:5000`**.
 
 ---
 
-## Menjalankan Aplikasi
+## 5. Alur Penggunaan API (Quick Start)
 
-```bash
-python run.py
+Endpoint dibagi dua: **Public** (bebas diakses) dan **JWT** (butuh token). Alur standar dari nol:
+
+```text
+1. Register   →  POST /users        (buat akun, password otomatis di-hash)
+2. Login      →  POST /auth/login   (dapat "token" JWT di response)
+3. Pakai token → kirim header:  Authorization: Bearer <token>
+                 pada semua endpoint bertanda JWT (create order, dsb.)
 ```
 
-atau:
+Contoh header untuk endpoint ber-JWT:
 
-```bash
-flask run
+```
+Authorization: Bearer <token-dari-login>
 ```
 
-Server berjalan di `http://127.0.0.1:5000`.
+Semua response memakai format konsisten:
+
+- **Sukses:** `{"status": "success", "data": ... }`
+- **Error:** `{"status": "error", "message": ... }`
 
 ---
 
-## Deployment
+## 6. Referensi API Endpoints
 
-Aplikasi ini sudah di-deploy dan dapat diakses secara publik:
-
-| Item            | Detail                                                    |
-| --------------- | --------------------------------------------------------- |
-| **Base URL**    | https://module-2-heraklosvisha13.onrender.com             |
-| **Platform**    | [Render](https://render.com) (hosting aplikasi)           |
-| **Database**    | [Supabase](https://supabase.com) (managed PostgreSQL)     |
-| **WSGI Server** | Gunicorn (`gunicorn --timeout 120 --workers 2 run:app`)   |
-
-### Konfigurasi Deployment
-
-- **Render** menjalankan aplikasi menggunakan Gunicorn sesuai definisi pada `Procfile`.
-- **Supabase** menyediakan PostgreSQL sebagai production database.
-- Environment variables (`DATABASE_URL` Supabase, `SECRET_KEY`, `JWT_SECRET_KEY`, `JWT_EXPIRATION`, dll.) dikonfigurasi melalui dashboard Render.
-
-### Menyiapkan Skema Database Supabase (Migration dari Lokal)
-
-Skema tabel di Supabase disiapkan **dari mesin lokal** dengan cara mengarahkan `DATABASE_URL` sementara ke Supabase, menjalankan migration, lalu mengembalikan `.env` ke konfigurasi awal. Langkahnya:
-
-**1. Arahkan `DATABASE_URL` ke Supabase**
-
-Ubah nilai `DATABASE_URL` di `.env` menjadi connection string Supabase:
-
-```env
-# .env — sementara diarahkan ke Supabase
-DATABASE_URL=postgresql://postgres:<password>@<host>.supabase.co:5432/postgres
-```
-
-**2. Jalankan migration ke database Supabase**
-
-```bash
-flask db migrate -m "deskripsi perubahan"   # hanya jika ada perubahan model
-flask db upgrade                            # membuat/menerapkan skema tabel di Supabase
-```
-
-**3. Kembalikan `DATABASE_URL` ke konfigurasi awal (lokal)**
-
-```env
-# .env — dikembalikan ke database lokal
-DATABASE_URL=postgresql://<user>:<password>@localhost:5432/revoshop_db
-```
-
-> **Kenapa dikembalikan?** Agar pengembangan sehari-hari (menjalankan app & test) tetap memakai database lokal dan tidak menyentuh data production. Migration cukup dijalankan sekali dari lokal untuk menyiapkan skema di Supabase; setelah itu Render tinggal terhubung ke database Supabase yang skemanya sudah siap.
-
-> **Catatan:** `flask db migrate` cukup dijalankan ketika ada perubahan model. Jika file migration di `migrations/versions/` sudah ada dan hanya perlu menerapkan skema ke database baru (Supabase), cukup jalankan `flask db upgrade` saja.
-
-### Endpoint yang Sudah Diverifikasi (Postman)
-
-Fitur-fitur berikut telah diuji langsung pada deployment production menggunakan **Postman** dan berjalan dengan baik:
-
-| Fitur                | Endpoint          | Status |
-| -------------------- | ----------------- | ------ |
-| Register user        | `POST /users`     | ✅      |
-| Login (JWT)          | `POST /auth/login`| ✅      |
-| Listing all products | `GET /products`   | ✅      |
-
-Pengujian dilakukan menggunakan akun `heraklosvisha13` yang didaftarkan langsung lewat endpoint `POST /users` pada deployment, lalu token hasil login-nya dipakai untuk endpoint ber-JWT.
-
-Contoh memanggil endpoint production:
-
-```bash
-curl https://module-2-heraklosvisha13.onrender.com/products
-```
-
-> ⚠️ **Penting soal seeding user:** Kolom `password_hash` harus diisi hasil `generate_password_hash` (Werkzeug), **bukan** teks biasa. Seeding user via SQL dengan nilai seperti `'hashed_password_1'` akan membuat login selalu gagal (`401`), karena `check_password_hash` tidak dapat memverifikasi string yang bukan hash. Untuk membuat user yang bisa login, daftarkan lewat endpoint `POST /users` agar password di-hash oleh aplikasi:
->
-> ```bash
-> curl -X POST https://module-2-heraklosvisha13.onrender.com/users \
->   -H "Content-Type: application/json" \
->   -d '{"username": "heraklosvisha13", "email": "heraklosvisha13@example.com", "password": "<password-anda>"}'
-> ```
->
-> Seeding SQL untuk `categories`, `products`, `orders`, dan `order_items` tetap aman digunakan karena tidak melibatkan hashing.
-
-> Catatan: Render free tier akan "tidur" saat idle, sehingga request pertama setelah lama tidak diakses bisa memerlukan beberapa detik untuk cold start.
-
----
-
-## Autentikasi (JWT)
-
-Endpoint yang ditandai **JWT** memerlukan header:
-
-```
-Authorization: Bearer <token>
-```
-
-Token diperoleh dari `POST /auth/login`. Alur umum: register user (`POST /users`) → login (`POST /auth/login`) → gunakan token pada endpoint yang butuh autentikasi.
-
----
-
-## API Endpoints
+Kolom **Auth**: `Public` = tanpa token, `JWT` = wajib header `Authorization: Bearer <token>`.
 
 ### Auth & Users
 
-| Method | Endpoint      | Auth   | Deskripsi                         |
-| ------ | ------------- | ------ | --------------------------------- |
-| POST   | `/users`      | Public | Registrasi user baru              |
-| POST   | `/auth/login` | Public | Login, mengembalikan JWT token    |
+| Method | Endpoint      | Auth   | Deskripsi                      |
+| ------ | ------------- | ------ | ------------------------------ |
+| POST   | `/users`      | Public | Registrasi user baru           |
+| POST   | `/auth/login` | Public | Login, mengembalikan JWT token |
 
 ### Products
 
-| Method | Endpoint          | Auth   | Deskripsi                                    |
-| ------ | ----------------- | ------ | -------------------------------------------- |
-| GET    | `/products`       | Public | Daftar semua produk                          |
-| GET    | `/products/<id>`  | Public | Detail produk by ID                          |
-| POST   | `/products`       | JWT    | Buat produk baru                             |
-| PUT    | `/products/<id>`  | JWT    | Update produk                                |
-| DELETE | `/products/<id>`  | JWT    | Hapus produk (ditolak jika ada order aktif)  |
+| Method | Endpoint         | Auth   | Deskripsi                                   |
+| ------ | ---------------- | ------ | ------------------------------------------- |
+| GET    | `/products`      | Public | Daftar semua produk                         |
+| GET    | `/products/<id>` | Public | Detail produk berdasarkan ID                |
+| POST   | `/products`      | JWT    | Buat produk baru                            |
+| PUT    | `/products/<id>` | JWT    | Update produk                               |
+| DELETE | `/products/<id>` | JWT    | Hapus produk (ditolak jika ada order aktif) |
 
 ### Categories
 
-| Method | Endpoint            | Auth   | Deskripsi                                   |
-| ------ | ------------------- | ------ | ------------------------------------------- |
-| GET    | `/categories`       | Public | Daftar semua kategori                       |
-| GET    | `/categories/<id>`  | Public | Detail kategori beserta produknya           |
-| POST   | `/categories`       | JWT    | Buat kategori baru                          |
-| PUT    | `/categories/<id>`  | JWT    | Update kategori                             |
-| DELETE | `/categories/<id>`  | JWT    | Hapus kategori (ditolak jika ada produk)    |
+| Method | Endpoint           | Auth   | Deskripsi                                |
+| ------ | ------------------ | ------ | ---------------------------------------- |
+| GET    | `/categories`      | Public | Daftar semua kategori                    |
+| GET    | `/categories/<id>` | Public | Detail kategori beserta produknya        |
+| POST   | `/categories`      | JWT    | Buat kategori baru                       |
+| PUT    | `/categories/<id>` | JWT    | Update kategori                          |
+| DELETE | `/categories/<id>` | JWT    | Hapus kategori (ditolak jika ada produk) |
 
 ### Orders
 
-| Method | Endpoint        | Auth | Deskripsi                                        |
-| ------ | --------------- | ---- | ------------------------------------------------ |
-| POST   | `/orders`       | JWT  | Buat pesanan baru                                |
-| GET    | `/orders`       | JWT  | Daftar pesanan milik user yang sedang login      |
-| GET    | `/orders/<id>`  | JWT  | Detail pesanan beserta item (hanya milik sendiri)|
-| DELETE | `/orders/<id>`  | JWT  | Hapus pesanan (hanya milik sendiri)              |
+| Method | Endpoint       | Auth | Deskripsi                                         |
+| ------ | -------------- | ---- | ------------------------------------------------- |
+| POST   | `/orders`      | JWT  | Buat pesanan baru                                 |
+| GET    | `/orders`      | JWT  | Daftar pesanan milik user yang sedang login       |
+| GET    | `/orders/<id>` | JWT  | Detail pesanan beserta item (hanya milik sendiri) |
+| DELETE | `/orders/<id>` | JWT  | Hapus pesanan (hanya milik sendiri)               |
 
-### Contoh Request — Login
+---
+
+## 7. Contoh Request
+
+### Register (`POST /users`)
+
+```bash
+curl -X POST http://127.0.0.1:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"username": "andi_cobra", "email": "andi_cobra@example.com", "password": "password123"}'
+```
+
+### Login (`POST /auth/login`)
 
 ```bash
 # Lokal
@@ -318,7 +273,7 @@ curl -X POST http://127.0.0.1:5000/auth/login \
 # Production (Render)
 curl -X POST https://module-2-heraklosvisha13.onrender.com/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username": "heraklosvisha13", "password": "<password-anda>"}'
+  -d '{"username": "andi_cobra", "password": "password123"}'
 ```
 
 Response:
@@ -339,7 +294,9 @@ Response:
 }
 ```
 
-### Contoh Request — Buat Order (JWT)
+### Buat Order (`POST /orders`, butuh JWT)
+
+Salin nilai `token` dari response login ke header `Authorization`:
 
 ```bash
 curl -X POST http://127.0.0.1:5000/orders \
@@ -348,46 +305,99 @@ curl -X POST http://127.0.0.1:5000/orders \
   -d '{"items": [{"product_id": 1, "quantity": 1}]}'
 ```
 
-> Format response mengikuti pola konsisten: sukses `{"status": "success", "data": ...}`, error `{"status": "error", "message": ...}`.
-
 ---
 
-## Database Migration
+## 8. Database Migration
 
 ```bash
-# Buat migration baru setelah mengubah model
-flask db migrate -m "deskripsi perubahan"
-
-# Terapkan migration ke database
-flask db upgrade
-
-# Rollback migration terakhir
-flask db downgrade
+flask db migrate -m "deskripsi perubahan"   # buat migration baru setelah mengubah model
+flask db upgrade                            # terapkan migration ke database
+flask db downgrade                          # rollback migration terakhir
 ```
+
+> `flask db migrate` hanya diperlukan saat **model berubah**. Untuk sekadar menerapkan skema yang sudah ada ke database baru, cukup `flask db upgrade`.
 
 ---
 
-## Testing
+## 9. Deployment (Render + Supabase)
 
-Testing menggunakan **pytest**. Database yang dipakai adalah `DATABASE_TESTING_URL` (`revoshop_test_db`), terpisah dari database utama sehingga menjalankan test tidak menyentuh data produksi.
+Aplikasi sudah di-deploy dan dapat diakses publik:
+
+| Item            | Detail                                                  |
+| --------------- | ------------------------------------------------------- |
+| **Base URL**    | https://module-2-heraklosvisha13.onrender.com           |
+| **Platform**    | [Render](https://render.com) — hosting aplikasi Flask   |
+| **Database**    | [Supabase](https://supabase.com) — managed PostgreSQL   |
+| **WSGI Server** | Gunicorn (`gunicorn --timeout 120 --workers 2 run:app`) |
+
+**Cara kerjanya:** Render menjalankan aplikasi via Gunicorn (sesuai `Procfile`), dan terhubung ke PostgreSQL yang di-host Supabase. Semua kredensial (`DATABASE_URL` Supabase, `SECRET_KEY`, `JWT_SECRET_KEY`, dll.) diset lewat dashboard Render, bukan di file `.env`.
+
+### Menyiapkan skema tabel di Supabase (dijalankan dari lokal)
+
+Skema di Supabase disiapkan **sekali** dari mesin lokal, dengan mengarahkan `DATABASE_URL` sementara ke Supabase, lalu dikembalikan ke lokal:
+
+**1. Arahkan `DATABASE_URL` ke Supabase**
+
+```env
+# .env — sementara
+DATABASE_URL=postgresql://postgres:<password>@<host>.supabase.co:5432/postgres
+```
+
+**2. Terapkan skema**
+
+```bash
+flask db upgrade
+```
+
+**3. Kembalikan `DATABASE_URL` ke database lokal**
+
+```env
+# .env — dikembalikan seperti semula
+DATABASE_URL=postgresql://<user>:<password>@localhost:5432/revoshop_db
+```
+
+> **Kenapa dikembalikan?** Supaya pengembangan sehari-hari (menjalankan app & test) tetap memakai database lokal dan tidak menyentuh data production. Migration cukup sekali; setelahnya Render langsung terhubung ke Supabase yang skemanya sudah siap.
+
+### Status pengujian production (Postman)
+
+Diuji langsung ke URL Render dan berjalan baik:
+
+| Fitur                | Endpoint           | Status |
+| -------------------- | ------------------ | ------ |
+| Register user        | `POST /users`      | ✅      |
+| Login (JWT)          | `POST /auth/login` | ✅      |
+| Listing all products | `GET /products`    | ✅      |
+
+Cek cepat lewat terminal:
+
+```bash
+curl https://module-2-heraklosvisha13.onrender.com/products
+```
+
+> ⚠️ **Seeding user:** Kolom `password_hash` harus diisi hasil `generate_password_hash` (Werkzeug), **bukan** teks biasa. Seeding user via SQL dengan nilai seperti `'hashed_password_1'` membuat login selalu gagal (`401`). Untuk user yang bisa login, daftarkan lewat `POST /users` agar password di-hash oleh aplikasi. Seeding SQL untuk `categories`, `products`, `orders`, dan `order_items` tetap aman (tidak melibatkan hashing).
+
+> 💤 **Cold start:** Render free tier "tidur" saat idle, jadi request pertama setelah lama menganggur bisa perlu beberapa detik.
+
+---
+
+## 10. Testing & Load Testing
+
+### Automated test (pytest)
+
+Test memakai database `DATABASE_TESTING_URL` (`revoshop_test_db`) yang terpisah dari database utama, sehingga aman dijalankan tanpa menyentuh data produksi.
 
 ```bash
 pytest -v -s
 ```
 
-`tests/conftest.py` membuat app dengan `TestingConfig`, membuat tabel sebelum test, dan menghapusnya setelah selesai. Ada pula guard yang menolak menjalankan test bila URI database bukan database testing.
+`tests/conftest.py` membuat app dengan `TestingConfig`, membangun tabel sebelum test dan menghapusnya setelah selesai. Ada guard yang menolak menjalankan test bila URI database bukan database testing.
 
----
+### Load testing (Locust)
 
-## Load Testing
-
-Load testing menggunakan **Locust** (`locustfile.py`). Skenario: login sekali di `on_start`, lalu mengulang alur GET produk → buat order → GET order.
-
-Pastikan `LOAD_TEST_USERNAME` dan `LOAD_TEST_PASSWORD` di `.env` merujuk ke user yang benar-benar ada dan bisa login (password plaintext, bukan hash).
-
-Jalankan (aplikasi harus running lebih dulu):
+Skenario: login sekali di `on_start`, lalu mengulang alur GET produk → buat order → GET order. Pastikan `LOAD_TEST_USERNAME` / `LOAD_TEST_PASSWORD` di `.env` merujuk user yang benar-benar ada (password plaintext, bukan hash).
 
 ```bash
+# aplikasi harus sudah running lebih dulu
 locust -f locustfile.py --host http://127.0.0.1:5000
 ```
 
@@ -395,21 +405,23 @@ Buka `http://localhost:8089` untuk mengatur jumlah user dan memulai test.
 
 ---
 
-## Screenshot
+## 11. Screenshot / Bukti Pengujian
 
-Screenshot pengujian tersedia di folder `docs/`:
+Semua bukti tersimpan di folder [`docs/`](docs/), disusun mengikuti alur: **infrastruktur → pengujian production → pengujian lokal → struktur database → automated/load test**.
 
-- Register user: `Screenshot-post-register-user.png`
-- Get user by ID: `Screenshot-get-user-by-id-foundid.png`
-- Get all products: `Screenshot-get-products-all.png`
-- Get product by ID: `Screenshot-get-products-by-id-found.png`
-- Role column added: `Screenshoot-role-column-added.png`
+### a. Infrastruktur Deployment
 
-### Pengujian pada Deployment (Render + Supabase)
+Platform yang menjalankan aplikasi: **Render** meng-host aplikasi Flask, **Supabase** menyediakan PostgreSQL.
 
-Screenshot berikut merupakan pengujian yang dilakukan langsung terhadap **URL deployment** (`https://module-2-heraklosvisha13.onrender.com`) menggunakan Postman:
+![Dashboard Render](docs/Screenshot-Render_dashboard.png)
 
-**Register user (`POST /users`)**
+![Dashboard Supabase](docs/Screenshot-Supabase_dashboard.png)
+
+### b. Pengujian API di Production (URL Render)
+
+Membuktikan aplikasi berjalan end-to-end di cloud, bukan hanya lokal.
+
+**Register (`POST /users`)**
 
 ![Register via URL deployment](docs/Screenshot-register-post-render_url.png)
 
@@ -419,15 +431,41 @@ Screenshot berikut merupakan pengujian yang dilakukan langsung terhadap **URL de
 
 ![Login via URL deployment (Render + Supabase)](docs/Screenshot-auth%3Alogin-post-render_url-supabase.png)
 
-**Listing all products (`GET /products`)**
+**Listing all products (`GET /products`)** — data diambil dari database Supabase.
 
 ![Get all products via URL deployment](docs/Screenshot-products-get_all-render_url.png)
 
 ![Get all products via URL deployment (2)](docs/Screenshot-products-get_all-render_url2.png)
 
+### c. Pengujian API Lokal (Postman)
+
+Pengujian tiap endpoint saat aplikasi jalan di `http://127.0.0.1:5000`, sebagai referensi bentuk request/response dan status code yang diharapkan.
+
+| Modul          | Skenario yang diuji                                                                             |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| **Auth/User**  | Register (`201`), Login (`200`), Get user by ID (ditemukan & tidak ditemukan)                   |
+| **Products**   | List semua (`200`), get by ID (`200`), create (`201`), update (`200`), delete saat dipakai order (`409`) |
+| **Categories** | List semua (`200`), get by ID (`200`), create (`201`), update (`200`), delete saat punya produk (`409`)  |
+| **Orders**     | Create (`201`), list semua (`200`), get by ID (`200`), akses order user lain (`403`)            |
+
+File terkait di `docs/`: `Screenshot-user-post-register-201.png`, `Screenshot-user-post-login-200.png`, `Screenshot-product-*`, `Screenshot-category-*`, `Screenshot-order-*`.
+
+### d. Struktur Database
+
+Bukti skema tabel hasil migration, termasuk kolom `role` pada `users` dan association table `order_items`.
+
+- Kolom `role` pada `users`: `Screenshoot-role-column-added.png`
+- Struktur tabel `users`: `Screenshot-structur_table-users.png`
+- Struktur association table `order_items`: `Screenshot-structur_table-order_items.png`
+
+### e. Automated & Load Testing
+
+- **pytest** — hasil seluruh test: `Screenshot-pytest_result.png`
+- **Locust** — hasil load testing: `Screenshot-locust_result.png` (laporan HTML lengkap: `Locust_2026-08-28-22h20_locustfile.py_http___127.0.0.1_5000.html`)
+
 ---
 
-## Tujuan Project
+## 12. Tujuan Project
 
 Project ini dibuat untuk memahami:
 
@@ -437,7 +475,7 @@ Project ini dibuat untuk memahami:
 - Validasi input dengan Marshmallow
 - Database migration dengan Flask-Migrate / Alembic
 - Password hashing dengan Werkzeug
-- Relasi antar tabel (One-to-Many, Many-to-Many)
+- Relasi antar tabel (one-to-many, many-to-many)
 - Automated testing dengan pytest (database testing terpisah)
 - Load testing dengan Locust
-- PostgreSQL sebagai production database
+- Deployment ke Render dengan PostgreSQL (Supabase) sebagai production database
