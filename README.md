@@ -6,6 +6,8 @@ Proyek ini adalah REST API untuk sistem e-commerce **RevoShop**, dibangun dengan
 
 Arsitektur disusun secara berlapis (layered): **API (routes) → Service (business logic) → Model (ORM)**, dengan validasi input menggunakan **Marshmallow**.
 
+> 🚀 **Live Deployment:** [https://module-2-heraklosvisha13.onrender.com](https://module-2-heraklosvisha13.onrender.com)
+
 ---
 
 ## Tech Stack
@@ -175,6 +177,86 @@ Server berjalan di `http://127.0.0.1:5000`.
 
 ---
 
+## Deployment
+
+Aplikasi ini sudah di-deploy dan dapat diakses secara publik:
+
+| Item            | Detail                                                    |
+| --------------- | --------------------------------------------------------- |
+| **Base URL**    | https://module-2-heraklosvisha13.onrender.com             |
+| **Platform**    | [Render](https://render.com) (hosting aplikasi)           |
+| **Database**    | [Supabase](https://supabase.com) (managed PostgreSQL)     |
+| **WSGI Server** | Gunicorn (`gunicorn --timeout 120 --workers 2 run:app`)   |
+
+### Konfigurasi Deployment
+
+- **Render** menjalankan aplikasi menggunakan Gunicorn sesuai definisi pada `Procfile`.
+- **Supabase** menyediakan PostgreSQL sebagai production database.
+- Environment variables (`DATABASE_URL` Supabase, `SECRET_KEY`, `JWT_SECRET_KEY`, `JWT_EXPIRATION`, dll.) dikonfigurasi melalui dashboard Render.
+
+### Menyiapkan Skema Database Supabase (Migration dari Lokal)
+
+Skema tabel di Supabase disiapkan **dari mesin lokal** dengan cara mengarahkan `DATABASE_URL` sementara ke Supabase, menjalankan migration, lalu mengembalikan `.env` ke konfigurasi awal. Langkahnya:
+
+**1. Arahkan `DATABASE_URL` ke Supabase**
+
+Ubah nilai `DATABASE_URL` di `.env` menjadi connection string Supabase:
+
+```env
+# .env — sementara diarahkan ke Supabase
+DATABASE_URL=postgresql://postgres:<password>@<host>.supabase.co:5432/postgres
+```
+
+**2. Jalankan migration ke database Supabase**
+
+```bash
+flask db migrate -m "deskripsi perubahan"   # hanya jika ada perubahan model
+flask db upgrade                            # membuat/menerapkan skema tabel di Supabase
+```
+
+**3. Kembalikan `DATABASE_URL` ke konfigurasi awal (lokal)**
+
+```env
+# .env — dikembalikan ke database lokal
+DATABASE_URL=postgresql://<user>:<password>@localhost:5432/revoshop_db
+```
+
+> **Kenapa dikembalikan?** Agar pengembangan sehari-hari (menjalankan app & test) tetap memakai database lokal dan tidak menyentuh data production. Migration cukup dijalankan sekali dari lokal untuk menyiapkan skema di Supabase; setelah itu Render tinggal terhubung ke database Supabase yang skemanya sudah siap.
+
+> **Catatan:** `flask db migrate` cukup dijalankan ketika ada perubahan model. Jika file migration di `migrations/versions/` sudah ada dan hanya perlu menerapkan skema ke database baru (Supabase), cukup jalankan `flask db upgrade` saja.
+
+### Endpoint yang Sudah Diverifikasi (Postman)
+
+Fitur-fitur berikut telah diuji langsung pada deployment production menggunakan **Postman** dan berjalan dengan baik:
+
+| Fitur                | Endpoint          | Status |
+| -------------------- | ----------------- | ------ |
+| Register user        | `POST /users`     | ✅      |
+| Login (JWT)          | `POST /auth/login`| ✅      |
+| Listing all products | `GET /products`   | ✅      |
+
+Pengujian dilakukan menggunakan akun `heraklosvisha13` yang didaftarkan langsung lewat endpoint `POST /users` pada deployment, lalu token hasil login-nya dipakai untuk endpoint ber-JWT.
+
+Contoh memanggil endpoint production:
+
+```bash
+curl https://module-2-heraklosvisha13.onrender.com/products
+```
+
+> ⚠️ **Penting soal seeding user:** Kolom `password_hash` harus diisi hasil `generate_password_hash` (Werkzeug), **bukan** teks biasa. Seeding user via SQL dengan nilai seperti `'hashed_password_1'` akan membuat login selalu gagal (`401`), karena `check_password_hash` tidak dapat memverifikasi string yang bukan hash. Untuk membuat user yang bisa login, daftarkan lewat endpoint `POST /users` agar password di-hash oleh aplikasi:
+>
+> ```bash
+> curl -X POST https://module-2-heraklosvisha13.onrender.com/users \
+>   -H "Content-Type: application/json" \
+>   -d '{"username": "heraklosvisha13", "email": "heraklosvisha13@example.com", "password": "<password-anda>"}'
+> ```
+>
+> Seeding SQL untuk `categories`, `products`, `orders`, dan `order_items` tetap aman digunakan karena tidak melibatkan hashing.
+
+> Catatan: Render free tier akan "tidur" saat idle, sehingga request pertama setelah lama tidak diakses bisa memerlukan beberapa detik untuk cold start.
+
+---
+
 ## Autentikasi (JWT)
 
 Endpoint yang ditandai **JWT** memerlukan header:
@@ -228,9 +310,15 @@ Token diperoleh dari `POST /auth/login`. Alur umum: register user (`POST /users`
 ### Contoh Request — Login
 
 ```bash
+# Lokal
 curl -X POST http://127.0.0.1:5000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "andi_cobra", "password": "password123"}'
+
+# Production (Render)
+curl -X POST https://module-2-heraklosvisha13.onrender.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "heraklosvisha13", "password": "<password-anda>"}'
 ```
 
 Response:
@@ -316,6 +404,26 @@ Screenshot pengujian tersedia di folder `docs/`:
 - Get all products: `Screenshot-get-products-all.png`
 - Get product by ID: `Screenshot-get-products-by-id-found.png`
 - Role column added: `Screenshoot-role-column-added.png`
+
+### Pengujian pada Deployment (Render + Supabase)
+
+Screenshot berikut merupakan pengujian yang dilakukan langsung terhadap **URL deployment** (`https://module-2-heraklosvisha13.onrender.com`) menggunakan Postman:
+
+**Register user (`POST /users`)**
+
+![Register via URL deployment](docs/Screenshot-register-post-render_url.png)
+
+**Login (`POST /auth/login`)**
+
+![Login via URL deployment](docs/Screenshot-auth%3Alogin-post-render_url.png)
+
+![Login via URL deployment (Render + Supabase)](docs/Screenshot-auth%3Alogin-post-render_url-supabase.png)
+
+**Listing all products (`GET /products`)**
+
+![Get all products via URL deployment](docs/Screenshot-products-get_all-render_url.png)
+
+![Get all products via URL deployment (2)](docs/Screenshot-products-get_all-render_url2.png)
 
 ---
 
