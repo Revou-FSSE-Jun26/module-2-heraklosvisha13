@@ -8,6 +8,7 @@ class OrderService:
         order_items_list = []
 
         for item in items_data:
+            print(item['product_id'], item['quantity'])
             product = Product.query.get(item['product_id'])
             if not product:
                 raise ValueError(f"Product {item['product_id']} not found")
