@@ -26,6 +26,7 @@ def create_app(config_class=Config):
     app.register_blueprint(products_bp)
     app.register_blueprint(categories_bp)
     app.register_blueprint(orders_bp)
+    app.register_blueprint(main_bp)
 
     # Register Error Handler
     register_error_handlers(app)
