@@ -9,4 +9,4 @@ def home():
         "version": "1.0.0",
         "status": "running",
         }
-    }), 200
+    ), 200
