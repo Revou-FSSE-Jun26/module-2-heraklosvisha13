@@ -10,6 +10,7 @@ from app.api.auth import auth_bp, users_bp
 from app.api.products import products_bp
 from app.api.categories import categories_bp
 from app.api.orders import orders_bp
+from app.api.main import main_bp 
 
 def create_app(config_class=Config):
     app = Flask(__name__)
