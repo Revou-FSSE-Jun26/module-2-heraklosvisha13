@@ -15,5 +15,45 @@ class Config:
     )
     DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
+
 class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_TESTING_URL')
+
+
+# ====================
+# KONFIGURASI SWAGGER
+# ====================
+
+SWAGGER_TEMPLATE = {
+    "info": {
+        "title": "Revoshop API",
+        "description": "Dokumentasi API untuk aplikasi E-Commerce Revoshop",
+        "version": "1.0.0",
+    },
+    "securityDefinitions": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT token. Enter: **Bearer <your-token>**"
+        }
+    },
+    "security": [
+        {"Bearer": []} 
+    ]
+}
+
+SWAGGER_CONFIG = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": "apispec_1",
+            "route": "/apispec_1.json",
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/apidocs/",
+}

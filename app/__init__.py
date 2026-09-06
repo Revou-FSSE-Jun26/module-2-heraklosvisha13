@@ -1,7 +1,8 @@
+from flasgger import Swagger
 from flask import Flask
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
-from config import Config
+from config import Config, SWAGGER_TEMPLATE, SWAGGER_CONFIG
 from app.models import db
 from app.utils.response_builder import register_error_handlers
 
@@ -15,6 +16,9 @@ from app.api.main import main_bp
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    # Inisialisasi Swagger
+    Swagger(app, template=SWAGGER_TEMPLATE, config=SWAGGER_CONFIG)
 
     # Inisialisasi Ekstensi
     db.init_app(app)
