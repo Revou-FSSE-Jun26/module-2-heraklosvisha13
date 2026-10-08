@@ -104,42 +104,40 @@ def create_product():
 @products_bp.route('', methods=['GET'])
 def get_products():
     """
-    List all products
+    List all products (public)
     ---
     tags:
       - Product
-    summary: Get all products (public)
+    summary: Get all products with optional search and category filter
+    parameters:
+      - name: search
+        in: query
+        type: string
+        required: false
+        description: Search by product name (case-insensitive)
+        example: laptop
+      - name: category_id
+        in: query
+        type: integer
+        required: false
+        description: Filter by category ID
+        example: 1
     responses:
       200:
         description: List of products
-        schema:
-          type: object
-          properties:
-            status:
-              type: string
-              example: "success"
-            data:
-              type: array
-              items:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                  name:
-                    type: string
-                  price:
-                    type: number
-                  stock:
-                    type: integer
-                  category_id:
-                    type: integer
       500:
         description: Internal server error
     """
     try:
-        products = ProductService.get_all_products()
+        search = request.args.get("search", "").strip()
+        category_id = request.args.get("category_id", type=int)
+
+        products = ProductService.get_all_products(
+            search=search or None,
+            category_id=category_id
+        )
         return success_response([p.to_dict() for p in products], 200)
-    except Exception:
+    except Exception as e:
         return error_response("Internal server error", 500)
 
 

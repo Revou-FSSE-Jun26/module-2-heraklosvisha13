@@ -22,8 +22,16 @@ class ProductService:
         return product
 
     @staticmethod
-    def get_all_products():
-        return Product.query.all()
+    def get_all_products(search=None, category_id=None):
+        query = Product.query
+
+        if search:
+            query = query.filter(Product.name.ilike(f"%{search}%"))
+
+        if category_id:
+            query = query.filter(Product.category_id == category_id)
+
+        return query.all()
 
     @staticmethod
     def get_product_by_id(product_id):
