@@ -24,7 +24,7 @@ class AuthService:
 
     @staticmethod
     def login_user(data):
-        user = User.query.filter_by(username=data['username']).first()
+        user = User.query.filter_by(email=data['email']).first()
         if not user:
             raise ValueError("Invalid credentials")
         if not check_password_hash(user.password_hash, data['password']):
