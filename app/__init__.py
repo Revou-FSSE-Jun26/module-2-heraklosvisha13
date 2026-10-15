@@ -1,5 +1,6 @@
 from flasgger import Swagger
 from flask import Flask
+from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from config import Config, SWAGGER_TEMPLATE, SWAGGER_CONFIG
@@ -19,6 +20,19 @@ def create_app(config_class=Config):
 
     # Inisialisasi Swagger
     Swagger(app, template=SWAGGER_TEMPLATE, config=SWAGGER_CONFIG)
+
+    #CORS
+    CORS(app, resources={
+        r"/*": {
+            "origins": [
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "https://*.vercel.app",   # production nanti
+            ],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+        }
+    })
 
     # Inisialisasi Ekstensi
     db.init_app(app)
