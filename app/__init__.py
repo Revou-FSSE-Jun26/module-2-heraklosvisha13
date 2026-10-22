@@ -27,7 +27,7 @@ def create_app(config_class=Config):
             "origins": [
                 "http://localhost:3000",
                 "http://127.0.0.1:3000",
-                "https://*.vercel.app",   # production nanti
+                "https://module-3-heraklosvisha13-red.vercel.app",
             ],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"],
